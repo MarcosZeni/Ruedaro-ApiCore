@@ -28,12 +28,27 @@ public sealed class SchemaCheck(Database db)
     private static readonly (string Tabla, string[] Columnas)[] Requerido =
     [
         ("usuarios",
-            ["id", "email", "password_hash", "nombre", "telefono", "rol", "estado",
+            ["id", "email", "password_hash", "nombre", "telefono", "rol", "estado", "plan_vence",
              "creado", "actualizado"]),
 
         ("sesiones", ["token_hash", "usuario_id", "ip", "creado", "expira"]),
 
         ("login_attempts", ["id", "fecha", "ip", "email", "usuario_id", "resultado", "pais"]),
+
+        ("cotizaciones", ["fecha", "valor", "obtenida"]),
+
+        ("pedidos",
+            ["id", "comprador_id", "tipo", "marca", "modelo", "anio_desde", "anio_hasta", "presupuesto", "moneda",
+             "presupuesto_usd", "cotizacion", "zona", "comentarios", "estado", "motivo_cierre", "creado", "actualizado"]),
+
+        ("ofertas",
+            ["id", "pedido_id", "revendedor_id", "marca", "modelo", "version", "anio", "uso", "precio", "moneda",
+             "precio_usd", "cotizacion", "link", "comentario", "estado", "creado"]),
+
+        ("publicaciones",
+            ["id", "revendedor_id", "tipo", "marca", "modelo", "version", "anio", "uso", "precio", "moneda",
+             "precio_usd", "cotizacion", "zona", "patente", "patente_vigente", "descripcion", "estado",
+             "destacada", "destacada_desde", "creado", "actualizado"]),
     ];
 
     public sealed record Resultado(bool Alcanzable, IReadOnlyList<string> Problemas, string? ErrorConexion)

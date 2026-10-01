@@ -13,7 +13,8 @@ public sealed record PerfilRequest(string? Nombre, string? Telefono);
 /// va como texto: es BIGINT y JavaScript pierde precisión con enteros grandes.
 /// </summary>
 public sealed record UsuarioDto(
-    string Id, string Nombre, string Email, string? Telefono, string Rol, string Estado, DateTime Creado);
+    string Id, string Nombre, string Email, string? Telefono, string Rol, string Estado, DateTime Creado,
+    DateTime? PlanVence);
 
 /// <summary>Sesión recién creada. El token se muestra una sola vez: la base guarda solo su hash.</summary>
 public sealed record SesionResponse(string Token, DateTime Expira, UsuarioDto Usuario);

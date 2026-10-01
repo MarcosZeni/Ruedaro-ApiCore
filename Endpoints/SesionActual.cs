@@ -36,6 +36,20 @@ public static class SesionActual
             return await next(ctx);
         });
 
+    /// <summary>
+    /// Sesión y además uno de estos roles. Un rol equivocado es 403, no 401: la
+    /// sesión está bien, lo que falta es permiso.
+    /// </summary>
+    public static RouteHandlerBuilder RequireRol(this RouteHandlerBuilder builder, params string[] roles)
+        // Los filtros corren en el orden en que se agregan: primero la sesión,
+        // después el rol (que necesita el usuario que dejó la sesión).
+        => builder
+            .RequireSesion()
+            .AddEndpointFilter(async (ctx, next) =>
+                roles.Contains(ctx.HttpContext.Usuario().Rol)
+                    ? await next(ctx)
+                    : Errores.Json(StatusCodes.Status403Forbidden, "sin_permiso", "No tenés permiso para hacer esto."));
+
     /// <summary>Usuario de la sesión. Solo en endpoints con <c>.RequireSesion()</c>.</summary>
     public static UsuarioRow Usuario(this HttpContext http) => (UsuarioRow)http.Items[ClaveUsuario]!;
 

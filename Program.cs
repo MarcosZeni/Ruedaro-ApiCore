@@ -54,6 +54,21 @@ builder.Services.AddSingleton<UserRepository>();
 builder.Services.AddSingleton<SessionRepository>();
 builder.Services.AddSingleton<LoginAttemptRepository>();
 builder.Services.AddSingleton<AttemptThrottle>();
+builder.Services.AddSingleton<PedidoRepository>();
+builder.Services.AddSingleton<OfertaRepository>();
+builder.Services.AddSingleton<PublicacionRepository>();
+
+// Dólar oficial del BCRA. Singleton con su propio HttpClient: guarda la
+// cotización en memoria una hora. PooledConnectionLifetime renueva las
+// conexiones cada tanto, así un cambio de DNS del lado del BCRA no nos deja
+// pegados a una IP vieja.
+builder.Services.AddSingleton(sp => new CotizacionService(
+    new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(15) })
+    {
+        DefaultRequestHeaders = { { "User-Agent", "pedidos-autos/1.0" } },
+    },
+    sp.GetRequiredService<Database>(),
+    sp.GetRequiredService<ILogger<CotizacionService>>()));
 
 // Errores: ProblemDetails genérico, sin stack trace ni mensaje interno hacia afuera.
 builder.Services.AddProblemDetails();
@@ -143,6 +158,9 @@ app.Use(async (http, next) =>
 
 app.MapHealth();
 app.MapAuth();
+app.MapPedidos();
+app.MapPublicaciones();
+app.MapAdmin();
 
 var startupLog = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Arranque");
 
