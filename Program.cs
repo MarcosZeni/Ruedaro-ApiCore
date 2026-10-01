@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using ApiCore.Config;
 using ApiCore.Data;
 using ApiCore.Endpoints;
+using ApiCore.Security;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +46,14 @@ var database = new Database(connectionString);
 builder.Services.AddSingleton(config);
 builder.Services.AddSingleton(database);
 builder.Services.AddSingleton<SchemaCheck>();
+builder.Services.AddSingleton(config.Security);
+builder.Services.AddSingleton<PasswordHasher>();
+builder.Services.AddSingleton<HashGate>();
+builder.Services.AddSingleton<GeoIpResolver>();
+builder.Services.AddSingleton<UserRepository>();
+builder.Services.AddSingleton<SessionRepository>();
+builder.Services.AddSingleton<LoginAttemptRepository>();
+builder.Services.AddSingleton<AttemptThrottle>();
 
 // Errores: ProblemDetails genérico, sin stack trace ni mensaje interno hacia afuera.
 builder.Services.AddProblemDetails();
@@ -133,6 +142,7 @@ app.Use(async (http, next) =>
 });
 
 app.MapHealth();
+app.MapAuth();
 
 var startupLog = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Arranque");
 
@@ -152,6 +162,22 @@ else if (!schema.Ok)
         string.Join("\n  - ", schema.Problemas));
     return 1;
 }
+
+// El techo de memoria de los hashes, a la vista: es un número que conviene
+// conocer antes de que lo descubra el servidor.
+var gate = app.Services.GetRequiredService<HashGate>();
+startupLog.LogInformation(
+    "Argon2id: hasta {Slots} hashes a la vez, techo de ~{Mb} MB.", gate.MaxConcurrent, gate.MemoryCeilingMb(config.Security));
+
+// Geolocalización: la base no viene en el repo y sin ella todo funciona igual,
+// así que se dice cuál de los dos casos es.
+var geo = app.Services.GetRequiredService<GeoIpResolver>();
+if (geo.Activo)
+    startupLog.LogInformation("Geolocalización activa desde {Ruta}", geo.Ruta);
+else
+    startupLog.LogInformation(
+        "Sin geolocalización: no está {Ruta}. Los intentos se guardan con país ZZ. " +
+        "Es GeoLite2-Country de MaxMind (~9 MB, cuenta gratis); se deja ahí y se reinicia.", geo.Ruta);
 
 if (config.TrustedNetworks.Length == 0)
     startupLog.LogInformation(

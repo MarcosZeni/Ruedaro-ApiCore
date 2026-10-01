@@ -42,6 +42,31 @@ Al arrancar, la API revisa que la base tenga todas las tablas y columnas que
 usa. Si falta una migración, lo dice y no arranca. Si MySQL todavía no
 contesta, avisa y arranca igual; `/health` da 503 hasta que la base responda.
 
+## Endpoints
+
+| Método y ruta | Sesión | Qué hace |
+|---|---|---|
+| `GET /health` | — | 200 si la base contesta, 503 si no |
+| `POST /api/v1/auth/registro` | — | Crea la cuenta (comprador o revendedor) e inicia sesión |
+| `POST /api/v1/auth/ingresar` | — | Inicia sesión |
+| `POST /api/v1/auth/salir` | Sí | Cierra la sesión (borra la fila) |
+| `GET /api/v1/auth/yo` | Sí | Datos del usuario |
+| `PUT /api/v1/auth/yo` | Sí | Cambia nombre y WhatsApp |
+
+La sesión va en `Authorization: Bearer <token>`. La web guarda el token en una
+cookie httpOnly y lo manda desde su servidor. Los errores vuelven como
+`{ codigo, mensaje, campo }`, con el mensaje listo para mostrar.
+
+**Administradores:** no se eligen al registrarse. Se asignan a mano en la base:
+
+```sql
+UPDATE usuarios SET rol = 'admin' WHERE email = 'tu@email.com';
+```
+
+**Geolocalización (opcional):** dejar `GeoLite2-Country.mmdb` de MaxMind al
+lado del `.csproj` y reiniciar. Sin el archivo, los intentos se guardan con
+país `ZZ`. No va al repo.
+
 ## Configuración
 
 Orden de precedencia, de menor a mayor: `appsettings.json` <
@@ -53,6 +78,7 @@ Orden de precedencia, de menor a mayor: `appsettings.json` <
 | `TrustedNetworks` | Redes CIDR desde las que se acepta `X-Forwarded-For` (la red de Docker de la web). Vacío = no se lee. |
 | `RateLimitPerMinute` | Techo global de pedidos por minuto por IP. |
 | `MaxRequestBodyBytes` | Tamaño máximo del cuerpo de un pedido (1 MB por defecto). |
+| `Security:*` | Duración de la sesión, frenos de login, Argon2id y geolocalización. Detalle en `Config/ApiConfig.cs`. |
 
 ## Seguridad
 
@@ -60,6 +86,9 @@ Orden de precedencia, de menor a mayor: `appsettings.json` <
 - MySQL con dos usuarios: la API solo lee y escribe datos; el schema se cambia
   con otro usuario que solo entra desde localhost.
 - SQL siempre con parámetros; nunca concatenar ni interpolar valores.
+- Contraseñas con Argon2id (formato PHC, se re-hashean solas si suben los parámetros). Cupo de hashes simultáneos para acotar la memoria.
+- Sesiones con token opaco de 32 bytes; la base guarda solo su SHA-256. Cerrar sesión o suspender al usuario la corta en el acto.
+- Freno por IP (10 por minuto) y por email (10 contraseñas mal en 15 minutos), contados en `login_attempts`. Mismo mensaje y mismo tiempo de respuesta para "email inexistente" y "contraseña mal".
 - MySQL en modo estricto (la API no arranca si no lo está).
 - Secretos nunca en archivos versionados.
 
@@ -69,7 +98,12 @@ Orden de precedencia, de menor a mayor: `appsettings.json` <
 Config/      ApiConfig.cs          configuración tipada
 Data/        Database.cs           conexiones a MySQL
              SchemaCheck.cs        verificación de la base al arrancar
+             UserRepository.cs, SessionRepository.cs, LoginAttemptRepository.cs
 Endpoints/   HealthEndpoints.cs    /health
+             AuthEndpoints.cs      /api/v1/auth
+             SesionActual.cs       .RequireSesion() y errores
+Security/    PasswordHasher, HashGate, GeoIpResolver (de LoginServer),
+             AttemptThrottle, SessionToken, Validacion, IpAddresses
 Models/      DTOs (sealed record)
 sql/         migraciones, a mano y en orden
 ```

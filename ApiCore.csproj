@@ -10,7 +10,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+    <PackageReference Include="MaxMind.GeoIP2" Version="6.1.0" />
     <PackageReference Include="MySqlConnector" Version="2.4.0" />
+  </ItemGroup>
+
+  <!-- Base de geolocalizacion de MaxMind, SI esta. No va al repo (datos de
+       terceros, 9 MB, se baja con cuenta gratis): la copia es condicional y la
+       API arranca igual sin ella. Dejandola al lado del .csproj, dotnet run la
+       encuentra. En Docker se monta como volumen. -->
+  <ItemGroup Condition="Exists('GeoLite2-Country.mmdb')">
+    <None Include="GeoLite2-Country.mmdb" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

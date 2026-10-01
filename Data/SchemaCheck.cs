@@ -30,6 +30,10 @@ public sealed class SchemaCheck(Database db)
         ("usuarios",
             ["id", "email", "password_hash", "nombre", "telefono", "rol", "estado",
              "creado", "actualizado"]),
+
+        ("sesiones", ["token_hash", "usuario_id", "ip", "creado", "expira"]),
+
+        ("login_attempts", ["id", "fecha", "ip", "email", "usuario_id", "resultado", "pais"]),
     ];
 
     public sealed record Resultado(bool Alcanzable, IReadOnlyList<string> Problemas, string? ErrorConexion)
