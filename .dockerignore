@@ -1,0 +1,9 @@
+# Nada de secretos ni artefactos locales dentro de la imagen.
+bin/
+obj/
+.vs/
+.git/
+appsettings.Local.json
+*.mmdb
+*.env
+.env*

@@ -427,3 +427,17 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# ==============================================================================
+# Propios del proyecto
+# ==============================================================================
+
+# Configuracion local con la cadena de conexion. Nunca a git.
+appsettings.Local.json
+
+# Base de geolocalizacion de MaxMind: datos de terceros que se bajan con cuenta
+# propia. Se monta en el servidor, no va al repo.
+*.mmdb
+
+.env
+.env.*

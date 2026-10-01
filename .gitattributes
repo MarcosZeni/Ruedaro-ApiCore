@@ -1,0 +1,12 @@
+# El servidor es Linux y se desarrolla en Windows: todo texto en el repo va con
+# LF, para que el Dockerfile y los scripts no se rompan por CRLF.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.mmdb binary
+
+# Excepcion: los .bat van con CRLF. cmd con LF puede fallar en los goto/call a
+# etiquetas.
+*.bat text eol=crlf
